@@ -1,0 +1,40 @@
+version: 1.0.{build}
+image: Ubuntu2004
+clone_depth: 1
+environment:
+  ARCH: arm64
+  KCFLAGS: -mstrict-align -mtune=cortex-a72.cortex-a53 -fgraphite -fgraphite-identity -fbranch-target-load-optimize -fgcse-las -fipa-pta -flimit-function-alignment -flive-range-shrinkage -floop-nest-optimize -fpredictive-commoning -fsched-spec-load -fsched-stalled-insns=3 -fsched2-use-superblocks
+install:
+    - sudo apt update
+
+    - sudo apt-get install -y aria2
+
+    - sudo apt-get install -y build-essential
+
+    - sudo apt-get install -y libelf-dev
+
+    - sudo apt-get install -y pwgen
+
+    - aria2c -x4 -s4 https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+
+    - aria2c -x4 -s4 https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-arm-none-linux-gnueabihf.tar.xz
+
+    - mkdir ~/tc
+
+    - tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz -C ~/tc
+
+    - tar -xf gcc-arm-9.2-2019.12-x86_64-arm-none-linux-gnueabihf.tar.xz -C ~/tc
+before_build:
+    - export CROSS_COMPILE=~/tc/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+
+    - export CROSS_COMPILE_ARM32=~/tc/gcc-arm-9.2-2019.12-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
+build_script:
+    - RSTR=$(pwgen -c -n 8 1)
+    - echo Random version string is $RSTR
+    - export LOCALVERSION=-$RSTR
+    - mkdir out
+    - make sagit-enh_defconfig O=out
+    - make -j3 O=out
+artifacts:
+- path: out/arch/arm64/boot/Image*
+- path: out/System.map
